@@ -73,7 +73,7 @@
     "cypress-file-upload": "^5.0.8",
     "cypress-wait-until": "^1.7.1",
     "mocha": "^10.2.0",
-    "node-sass": "^4.14.1",
+    "node-sass": "^9.0.0",
     "prettier": "^2.1.1",
     "raw.macro": "^0.4.2",
     "react-scripts": "^4.0.3",
