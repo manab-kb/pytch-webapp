@@ -4,7 +4,6 @@ import Welcome from "./components/Welcome";
 import ProjectList from "./components/ProjectList";
 import TutorialList from "./components/TutorialList";
 import IDE from "./components/IDE";
-import ExportPipeline from "./components/ExportPipeline";
 
 import "./pytch.scss";
 import "./project-list.scss";
@@ -44,7 +43,6 @@ function App() {
         <IDE path="/ide/:projectIdString" />
         <SingleTutorial path="/suggested-tutorial/:slug" />
         <DemoFromZipfileURL path="/suggested-demo/:buildId/:demoId" />
-        <ExportPipeline path="/export-pipeline" />
         <UnknownRoute default />
       </Router>
       <AllModals />
