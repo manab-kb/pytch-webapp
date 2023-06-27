@@ -76,7 +76,7 @@
     "node-sass": "^4.14.1",
     "prettier": "^2.1.1",
     "raw.macro": "^0.4.2",
-    "react-scripts": "^4.0.3",
+    "react-scripts": "^5.0.1",
     "ts-mocha": "^10.0.0"
   }
 }
