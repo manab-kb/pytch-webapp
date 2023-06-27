@@ -12,10 +12,10 @@ import {
 } from "../database/indexed-db";
 import { assertNever, failIfNull, withinApp } from "../utils";
 
-import { TutorialId, ITutorialContent } from "./tutorial";
+import { TutorialId } from "./tutorial";
 import { IPytchAppModel } from ".";
-
-export type ProjectId = number;
+import { ProjectId, ITrackedTutorial } from "./project-core";
+import { PytchProgramOps } from "./pytch-program";
 
 export type ProjectTemplateKind = "bare-bones" | "with-sample-code";
 
@@ -31,11 +31,6 @@ export interface ICopyProjectDescriptor {
 
 export interface ITrackedTutorialRef {
   slug: TutorialId;
-  activeChapterIndex: number;
-}
-
-export interface ITrackedTutorial {
-  content: ITutorialContent;
   activeChapterIndex: number;
 }
 
@@ -162,13 +157,12 @@ export const projectCollection: IProjectCollection = {
       }
     })();
 
-    const skeletonCodeText = templateContent.codeText;
-
+    const program = PytchProgramOps.fromPythonCode(templateContent.codeText);
     const newProject = await createNewProject(
       descriptor.name,
-      undefined,
-      undefined,
-      skeletonCodeText
+      undefined, // summary
+      undefined, // tracked tutorial ref
+      program
     );
 
     // These are fetched at runtime:

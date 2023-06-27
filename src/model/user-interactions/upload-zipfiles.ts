@@ -7,7 +7,7 @@ import {
 } from "../../database/indexed-db";
 import { projectDescriptor, wrappedError } from "../../storage/zipfile";
 import { simpleReadArrayBuffer, withinApp } from "../../utils";
-import { ProjectId } from "../projects";
+import { ProjectId } from "../project-core";
 import {
   FileProcessingFailure,
   IProcessFilesInteraction,
@@ -37,7 +37,7 @@ export const uploadZipfilesInteraction: IProcessFilesInteraction = {
             projectInfo.name,
             projectInfo.summary,
             undefined,
-            projectInfo.codeText,
+            projectInfo.program,
             projectInfo.assets
           );
           newProjectIds.push(projectId);

@@ -2,8 +2,9 @@ import JSZip from "jszip";
 import * as MimeTypes from "mime-types";
 import { AddAssetDescriptor, assetData } from "../database/indexed-db";
 import { AssetTransform } from "../model/asset";
-import { IProjectContent } from "../model/project";
+import { StoredProjectContent } from "../model/project";
 import { envVarOrFail, failIfNull } from "../utils";
+import { PytchProgram, PytchProgramOps } from "../model/pytch-program";
 
 // This is the same as IAddAssetDescriptor; any way to avoid this
 // duplication?
@@ -118,19 +119,22 @@ const _loadZipOrFail = async (zipData: ArrayBuffer): Promise<JSZip> => {
 
 // TODO: Would it be meaningful to create a tutorial-tracking project
 // from a zipfile?
-export type ProjectDescriptor = {
+/** A project described in a stand-alone form, i.e., with all asset data
+ * as part of the descriptor. */
+export type StandaloneProjectDescriptor = {
   name: string;
   summary?: string;
-  codeText: string;
+  program: PytchProgram;
   assets: Array<AddAssetDescriptor>;
 };
 
 const parseZipfile_V1 = async (
   zip: JSZip,
   zipName?: string
-): Promise<ProjectDescriptor> => {
+): Promise<StandaloneProjectDescriptor> => {
   const codeZipObj = _zipObjOrFail(zip, "code/code.py", bareError);
   const codeText = await codeZipObj.async("text");
+  const program = PytchProgramOps.fromPythonCode(codeText);
 
   const metadata = await _jsonOrFail(zip, "meta.json", bareError);
   const projectName = failIfNull(
@@ -155,15 +159,19 @@ const parseZipfile_V1 = async (
   const summary =
     zipName == null ? undefined : `Created from zipfile "${zipName}"`;
 
-  return { name: projectName, summary, codeText, assets };
+  return { name: projectName, summary, program, assets };
 };
 
-const parseZipfile_V2 = async (
+const parseZipfile_V2_V3 = async (
   zip: JSZip,
+  programPath: string,
   zipName?: string
-): Promise<ProjectDescriptor> => {
-  const codeZipObj = _zipObjOrFail(zip, "code/code.py", bareError);
-  const codeText = await codeZipObj.async("text");
+): Promise<StandaloneProjectDescriptor> => {
+  const codeZipObj = _zipObjOrFail(zip, programPath, bareError);
+  const codeTextOrJson = await codeZipObj.async("text");
+  const program = programPath.endsWith(".py")
+    ? PytchProgramOps.fromPythonCode(codeTextOrJson)
+    : PytchProgramOps.fromJson(codeTextOrJson);
 
   const projectMetadata = await _jsonOrFail(zip, "meta.json", bareError);
   const projectName = failIfNull(
@@ -203,48 +211,42 @@ const parseZipfile_V2 = async (
   const summary =
     zipName == null ? undefined : `Created from zipfile "${zipName}"`;
 
-  return { name: projectName, summary, codeText, assets };
+  return { name: projectName, summary, program, assets };
 };
 
 export const projectDescriptor = async (
   zipName: string | undefined,
   zipData: ArrayBuffer
-): Promise<ProjectDescriptor> => {
+): Promise<StandaloneProjectDescriptor> => {
   const zip = await _loadZipOrFail(zipData);
   const versionNumber = await _versionOrFail(zip);
-  switch (versionNumber) {
-    case 1:
-      try {
+  try {
+    switch (versionNumber) {
+      case 1:
         return await parseZipfile_V1(zip, zipName);
-      } catch (err) {
-        throw wrappedError(err as Error);
-      }
-    // No "break" needed; we've either returned or thrown by now.
-    case 2:
-      try {
-        return await parseZipfile_V2(zip, zipName);
-      } catch (err) {
-        throw wrappedError(err as Error);
-      }
-    // No "break" needed; we've either returned or thrown by now.
-    default:
-      throw wrappedError(
-        new Error(`unhandled Pytch zipfile version ${versionNumber}`)
-      );
+      case 2:
+        return await parseZipfile_V2_V3(zip, "code/code.py", zipName);
+      case 3:
+        return await parseZipfile_V2_V3(zip, "code/code.json", zipName);
+      default:
+        throw new Error(`unhandled Pytch zipfile version ${versionNumber}`);
+    }
+  } catch (err) {
+    throw wrappedError(err as Error);
   }
 };
 
 export const projectDescriptorFromURL = async (
   url: string
-): Promise<ProjectDescriptor> => {
+): Promise<StandaloneProjectDescriptor> => {
   const rawResp = await fetch(url);
   const data = await rawResp.arrayBuffer();
   return projectDescriptor(undefined, data);
 };
 
-const pytchZipfileVersion = 2;
+const pytchZipfileVersion = 3;
 export const zipfileDataFromProject = async (
-  project: IProjectContent
+  project: StoredProjectContent
 ): Promise<Uint8Array> => {
   const zipFile = new JSZip();
   zipFile.file("version.json", JSON.stringify({ pytchZipfileVersion }));
@@ -255,7 +257,7 @@ export const zipfileDataFromProject = async (
   const metaData = { projectName };
   zipFile.file("meta.json", JSON.stringify(metaData));
 
-  zipFile.file("code/code.py", project.codeText);
+  zipFile.file("code/code.json", JSON.stringify(project.program));
 
   // Ensure folder exists, even if there are no assets.
   zipFile.folder("assets")!.folder("files");

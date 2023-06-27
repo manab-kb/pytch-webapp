@@ -1,4 +1,5 @@
-import { IProjectContent } from "../model/project";
+import { StoredProjectContent } from "../model/project";
+import { PytchProgramOps } from "../model/pytch-program";
 import { assetServer } from "./asset-server";
 import { ensureSoundManager } from "./sound-manager";
 
@@ -32,7 +33,7 @@ interface BuildFailure {
 export type BuildOutcome = BuildSuccess | BuildFailure;
 
 export const build = async (
-  project: IProjectContent,
+  project: StoredProjectContent,
   addOutputChunk: (chunk: string) => void,
   handleError: (pytchError: any, errorContext: any) => void
 ): Promise<BuildOutcome> => {
@@ -48,7 +49,8 @@ export const build = async (
     Sk.pytch.async_load_image = (name: string) => {
       return assetServer.loadImage(name);
     };
-    await Sk.pytchsupport.import_with_auto_configure(project.codeText);
+    const codeText = PytchProgramOps.flatCodeText(project.program);
+    await Sk.pytchsupport.import_with_auto_configure(codeText);
     Sk.pytch.current_live_project.on_green_flag_clicked();
     return { kind: BuildOutcomeKind.Success };
   } catch (err) {

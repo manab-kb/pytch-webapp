@@ -1,6 +1,6 @@
 import { IAssetInProject, AssetPresentation } from "./asset";
 
-import { ProjectId, ITrackedTutorial } from "./projects";
+import { ProjectId, ITrackedTutorial, StoredProjectData } from "./project-core";
 import { Action, action, Thunk, thunk, Computed, computed } from "easy-peasy";
 import { batch } from "react-redux";
 import {
@@ -27,26 +27,20 @@ import { codeJustBeforeWipChapter, tutorialContentFromHTML } from "./tutorial";
 import { liveReloadURL } from "../constants";
 
 import { aceController } from "../skulpt-connection/code-editor";
+import { PytchProgramOps } from "./pytch-program";
 
 type FocusDestination = "editor" | "running-project";
 
-// TODO: Any way to avoid duplicating information between the
-// 'descriptor' and the 'content'?  Should the Descriptor be defined
-// by the database?
-export interface IProjectDescriptor {
-  id: ProjectId;
-  codeText: string;
-  assets: Array<IAssetInProject>;
-  trackedTutorial?: ITrackedTutorial;
-}
+/** A project which is stored in the browser's indexed-DB and whose
+ * assets are described by their ID (rather than their data). */
+export type StoredProjectDescriptor = StoredProjectData<IAssetInProject>;
 
-export interface IProjectContent {
-  id: ProjectId;
-  name: string;
-  codeText: string;
-  assets: Array<AssetPresentation>;
-  trackedTutorial?: ITrackedTutorial;
-}
+/** A project which is stored in the browser's indexed-DB and whose
+ * assets are stored in a form ready for use in the DOM.  E.g., images
+ * are stored as `HTMLImageElement` instances.  (In fact sounds are not
+ * stored like this because have not yet worked out how to get a
+ * suitable `AudioContext`.) */
+export type StoredProjectContent = StoredProjectData<AssetPresentation>;
 
 // TODO: Add error message or similar to "failed".
 type SyncRequestOutcome = "succeeded" | "failed";
@@ -144,7 +138,7 @@ export interface IActiveProject {
   noteSaveRequestOutcome: Action<IActiveProject, SyncRequestOutcome>;
 
   syncState: Computed<IActiveProject, ILoadSaveStatus>;
-  project: IProjectContent;
+  project: StoredProjectContent;
   editSeqNum: number;
   lastSyncFromStorageSeqNum: number;
   codeStateVsStorage: CodeStateVsStorage;
@@ -153,9 +147,7 @@ export interface IActiveProject {
 
   haveProject: Computed<IActiveProject, boolean>;
 
-  codeTextOrPlaceholder: Computed<IActiveProject, string>;
-
-  initialiseContent: Action<IActiveProject, IProjectContent>;
+  initialiseContent: Action<IActiveProject, StoredProjectContent>;
   setAssets: Action<IActiveProject, Array<AssetPresentation>>;
 
   syncDummyProject: Action<IActiveProject>;
@@ -193,16 +185,18 @@ export interface IActiveProject {
   build: Thunk<IActiveProject, FocusDestination, {}, IPytchAppModel>;
 }
 
-const codeTextLoadingPlaceholder: string = "# -- loading --\n";
+const dummyPytchProgram = PytchProgramOps.fromPythonCode(
+  "#\n# Your project is loading....\n#\n"
+);
 
-const dummyProject: IProjectContent = {
+const dummyProject: StoredProjectContent = {
   id: -1,
   name: "...Loading project...",
-  codeText: "#\n# Your project is loading....\n#\n",
+  program: dummyPytchProgram,
   assets: [],
 };
 
-const failIfDummy = (project: IProjectContent, label: string) => {
+const failIfDummy = (project: StoredProjectContent, label: string) => {
   if (project.id === -1) {
     throw new Error(`${label}: cannot work with dummy project`);
   }
@@ -211,8 +205,8 @@ const failIfDummy = (project: IProjectContent, label: string) => {
 export const activeProject: IActiveProject = {
   // Auto-increment ID is always positive, so "-1" will never compare
   // equal to a real project-id.
-  latestLoadRequest: { projectId: -1, seqnum: 1000, state: "succeeded" },
-  latestSaveRequest: { projectId: -1, seqnum: 1000, state: "succeeded" },
+  latestLoadRequest: { projectId: -1, seqnum: 1000, state: "failed" },
+  latestSaveRequest: { projectId: -1, seqnum: 1000, state: "failed" },
 
   noteLoadRequest: action((state, request) => {
     state.latestLoadRequest = request;
@@ -249,21 +243,6 @@ export const activeProject: IActiveProject = {
 
   haveProject: computed((state) => state.project.id !== -1),
 
-  codeTextOrPlaceholder: computed((state) => {
-    switch (state.syncState.loadState) {
-      case "pending":
-        return codeTextLoadingPlaceholder;
-      case "succeeded":
-        // It's OK if we refer to the dummy project's code text here,
-        // because it should be replaced very soon.
-        return state.project.codeText;
-      case "failed":
-        return "# error?";
-      default:
-        throw new Error(`unknown loadState ${state.syncState.loadState}`);
-    }
-  }),
-
   initialiseContent: action((state, content) => {
     state.project = content;
     state.editSeqNum += 1;
@@ -280,7 +259,14 @@ export const activeProject: IActiveProject = {
   setCodeText: action((state, text) => {
     let project = state.project;
     failIfDummy(project, "setCodeText");
-    project.codeText = text;
+
+    let program = project.program;
+    if (program.kind !== "flat")
+      throw new Error(
+        `setCodeText(): kind must be "flat" but is "${program.kind}"`
+      );
+
+    program.text = text;
     state.editSeqNum += 1;
   }),
 
@@ -295,7 +281,7 @@ export const activeProject: IActiveProject = {
     state.latestLoadRequest = {
       projectId: -1,
       seqnum: newSeqnum,
-      state: "succeeded",
+      state: "failed",
     };
 
     state.project = dummyProject;
@@ -360,11 +346,11 @@ export const activeProject: IActiveProject = {
         descriptor.assets.map((a) => AssetPresentation.create(a))
       );
 
-      const content: IProjectContent = {
+      const content: StoredProjectContent = {
         id: descriptor.id,
         name: summary.name,
         assets: assetPresentations,
-        codeText: descriptor.codeText,
+        program: descriptor.program,
         trackedTutorial: descriptor.trackedTutorial,
       };
 
@@ -489,7 +475,7 @@ export const activeProject: IActiveProject = {
 
     await updateProject(
       projectId,
-      project.codeText,
+      project.program,
       project.trackedTutorial?.activeChapterIndex
     );
 
@@ -513,7 +499,7 @@ export const activeProject: IActiveProject = {
     const tutorialContent = trackedTutorial.content;
     if (tutorialContent.workInProgressChapter != null) {
       const newCode = codeJustBeforeWipChapter(tutorialContent);
-      project.codeText = newCode;
+      project.program = PytchProgramOps.fromPythonCode(newCode);
     }
   }),
 
@@ -621,7 +607,7 @@ export const activeProject: IActiveProject = {
       // reset of the current live Skulpt project.
       await updateProject(
         project.id,
-        project.codeText,
+        project.program,
         project.trackedTutorial?.activeChapterIndex
       );
 
