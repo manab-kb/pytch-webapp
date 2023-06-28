@@ -13,7 +13,6 @@ declare var Sk: any;
 
 var code: String = "";
 var errors: String = "";
-var returnerrors: String = "";
 var flag = 0;
 var globalerrors: String = "";
 
@@ -68,22 +67,21 @@ const build = async (code: String, errors: String) => {
   return errors;
 };
 
-const buildasync = async (code, errors) => {
-  returnerrors = await build(code, errors);
-  return returnerrors;
-};
-
+// TO-DO: Dispatch build runs in batches of 500 till all are complete
 const ExportPipeline: React.FC<ExportPipelineProps> = (ExportPipelineProps) => {
-  for (var i = 1; i <= 1; i++) {
+  for (var i = 1; i <= 500; i++) {
     code = "";
     errors = "";
     flag = 0;
 
     code = txt[i]["code"];
-    errors = buildasync(code, errors);
-    globalerrors += "////\n";
-    globalerrors += errors;
-    console.log(errors);
+    errors = build(code, errors);
+
+    // eslint-disable-next-line
+    errors.then((data) => {
+      globalerrors += "////\n";
+      globalerrors += data;
+    });
   }
 
   const TextFile = () => {
@@ -97,9 +95,11 @@ const ExportPipeline: React.FC<ExportPipelineProps> = (ExportPipelineProps) => {
     element.click();
   };
 
+//TO-DO: Make progress bar responsive to tasks being performed
   return (
     <div align="center">
-      <h3>Export Pipeline</h3>
+      <br/><h3>Export Pipeline</h3><hr/><br/><br/>
+      <h5>Once the bar reaches 100%, click it to download the file containing outputs.</h5>
       <ProgressBar now={70} label={"70%"} onClick={TextFile} />
     </div>
   );
