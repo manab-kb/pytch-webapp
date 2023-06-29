@@ -83,9 +83,9 @@ const updateProgress = () => {
   }, 100);
 };
 
-// TO-DO: Dispatch build runs in batches of 500 till all are complete
+// TO-DO: Dispatch build runs in batches of 500 till all are complete ?
 const ExportPipeline: React.FC<ExportPipelineProps> = (ExportPipelineProps) => {
-  for (var i = 1; i <= 1; i++) {
+  for (var i = 1; i <= 500; i++) {
     code = "";
     errors = "";
     flag = 0;
