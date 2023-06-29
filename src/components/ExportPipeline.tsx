@@ -2,7 +2,6 @@
 
 import { RouteComponentProps } from "@reach/router";
 import React from "react";
-import { ProgressBar } from "react-bootstrap";
 import { assetServer } from "../skulpt-connection/asset-server";
 import { ensureSoundManager } from "../skulpt-connection/sound-manager";
 import txt from "../assets/globaldata-pytch.json";
@@ -67,9 +66,26 @@ const build = async (code: String, errors: String) => {
   return errors;
 };
 
+// TO-DO: Temporary fix for now, implement later
+const updateProgress = () => {
+  var progressBar = document.getElementById("progressBar");
+  var progress = 0;
+
+  var interval = setInterval(function () {
+    progress += 1;
+    if (progressBar !== null) {
+      progressBar.value = progress;
+    }
+
+    if (progress === 100) {
+      clearInterval(interval);
+    }
+  }, 100);
+};
+
 // TO-DO: Dispatch build runs in batches of 500 till all are complete
 const ExportPipeline: React.FC<ExportPipelineProps> = (ExportPipelineProps) => {
-  for (var i = 1; i <= 500; i++) {
+  for (var i = 1; i <= 1; i++) {
     code = "";
     errors = "";
     flag = 0;
@@ -95,12 +111,25 @@ const ExportPipeline: React.FC<ExportPipelineProps> = (ExportPipelineProps) => {
     element.click();
   };
 
-//TO-DO: Make progress bar responsive to tasks being performed
+  // TO-DO: Make progress bar responsive to tasks being performed
   return (
     <div align="center">
-      <br/><h3>Export Pipeline</h3><hr/><br/><br/>
-      <h5>Once the bar reaches 100%, click it to download the file containing outputs.</h5>
-      <ProgressBar now={70} label={"70%"} onClick={TextFile} />
+      <br />
+      <h3>Export Pipeline</h3>
+      <hr />
+      <br />
+      <br />
+      <h5>
+        Once the bar reaches 100%, click it to download the file containing
+        outputs.
+      </h5>
+      <progress
+        id="progressBar"
+        value={0}
+        max={100}
+        onClick={TextFile}
+        onMouseOver={updateProgress}
+      />
     </div>
   );
 };
