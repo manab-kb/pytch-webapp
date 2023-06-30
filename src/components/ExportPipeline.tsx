@@ -63,7 +63,7 @@ const build = async (code: String, errors: String) => {
       }
     }
   }
-  return errors;
+  return code + "::::" + errors;
 };
 
 // TO-DO: Temporary fix for now, implement later
@@ -85,7 +85,7 @@ const updateProgress = () => {
 
 // TO-DO: Dispatch build runs in batches of 500 till all are complete ?
 const ExportPipeline: React.FC<ExportPipelineProps> = (ExportPipelineProps) => {
-  for (var i = 1; i <= 500; i++) {
+  for (var i = 26501; i <= 26827; i++) {
     code = "";
     errors = "";
     flag = 0;
