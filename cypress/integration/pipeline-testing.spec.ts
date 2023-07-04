@@ -7,73 +7,103 @@ describe("Cypress Testing Pipeline", () => {
 
     var code = txt[i]["code"];
     var category = txt[i]["category"];
+    var errors = txt[i]["errormsg-PytchVM"];
 
     if (category !== "") {
 
-      it("Navigates to tutorial", () => {
-        cy.visit("http://localhost:3000/tutorials/");
+      if (errors === "CORRECT: No errors were found") {
 
-        cy.contains(category);
-        cy.contains("Learn how to make this project").click();
-      });
+        it("Navigates to tutorial", () => {
+          cy.visit("http://localhost:3000/tutorials/");
 
-      it("Inserts code into code editor", () => {
-        cy.get("#pytch-ace-editor").type(code);
-      });
+          cy.contains(category);
+          cy.contains("Learn how to make this project").click();
+        });
 
-      it("Saves current program status", () => {
-        cy.get("button").contains("Save").click();
-      })
+        // TO-DO: filter code before being typed as auto formatting is turned on (remove all escape sequences)
+        it("Inserts code into code editor", () => {
+          cy.get("#pytch-ace-editor").type(code);
+        });
 
-      it("Clicks green flag and runs program", () => {
-        cy.get(".GreenFlag").click();
-      })
+        it("Saves current program status", () => {
+          cy.get("button").contains("Save").click();
+        });
 
-      // TO-DO: Define what keys to press and actions to perform based on the program category
-      switch(category) {
-        case 1:
+        it("Clicks green flag and runs program", () => {
+          cy.get(".GreenFlag").click();
+        });
+
+        switch (category) {
+          case "Hello world!":
+            it("HELLO WORLD TESTING: clicking on image", () => {
+                cy.get("img").contains("Snake.png").click().contains("Hello there!");
+            })
             break;
-        
-        case 2:
+
+          case "Shoot the fruit":
+            // TO-DO: determine if the fruit displayed is an orange or an apple without raising errors
+            it("SHOOT THE FRUIT TESTING: clicking on apples and oranges", () => {
+                cy.get("img").contains("apple.png").click().contains("score").should("have.value", "1");
+                cy.get("img").contains("orange.png").click().contains("score").should("have.value", "2");
+            })
             break;
-        
-        case 3:
+
+          case "Chase game":
+            it("CHASE GAME TESTING:", () => {
+            })
             break;
-        
-        case 4:
+
+          case "Catch the apple!":
+            it("CATCH THE APPLE TESTING:", () => {
+            })
             break;
-        
-        case 5:
+
+          case "Blue Invaders":
+            it("BLUE INVADERS TESTING:", () => {
+            })
             break;
-        
-        case 6:
+
+          case "Multiple choice quiz":
+            it("MULTIPLE CHOICE QUIZ TESTING:", () => {
+            })
             break;
-        
-        case 7:
+
+          case "Splat the moles":
+            it("SPLAT THE MOLES TESTING:", () => {
+            })
             break;
-        
-        case 8:
+
+          case "Trimon":
+            it("TRIMON TESTING:", () => {
+            })
             break;
-        
-        case 9:
+
+          case "Q*bert: Recreate the cube-hopping action":
+            it("QBERT TESTING:", () => {
+            })
             break;
-        
-        case 10:
+
+          case "Bunner — a Frogger-like game":
+            it("BUNNER TESTING:", () => {
+            })
             break;
-        
-        case 11:
+
+          case "Boing — a Pong-like game":
+            it("BOING TESTING:", () => {
+            })
             break;
-        
-        case 12:
+
+          case "A vending machine for tickets":
+            it("VENDING MACHINE TESTING:", () => {
+            })
             break;
-        
-        default:
+
+          default:
             break;
-        
+        }
+
+        // TO-DO: create downloadable text file to return errors if any or a status depicting that the code is functional
       }
-    
-    // TO-DO: create downloadable text file to return errors if any or a status depicting that the code is functional
     }
-
   }
 });
