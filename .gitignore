@@ -38,3 +38,5 @@ cypress/fixtures/project-zipfiles/tmp-content/
 
 # Dot-env file for Google Api values
 src/.env
+
+src/assets/globaldata-pytch.json
