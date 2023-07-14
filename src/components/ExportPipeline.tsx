@@ -93,7 +93,7 @@ const ExportPipeline: React.FC<ExportPipelineProps> = (ExportPipelineProps) => {
       errors = "";
       flag = 0;
 
-      code = txt[i]["code"];
+      code = txt[i]["GPT"]["Code"];
       errors = build(code, errors);
 
       // eslint-disable-next-line
