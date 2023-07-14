@@ -4,7 +4,8 @@ import { RouteComponentProps } from "@reach/router";
 import React from "react";
 import { assetServer } from "../skulpt-connection/asset-server";
 import { ensureSoundManager } from "../skulpt-connection/sound-manager";
-import txt from "../assets/globaldata-pytch.json";
+// import txt from "../assets/globaldata-pytch.json";
+import txt from "../assets/gpt-eval.json";
 
 interface ExportPipelineProps extends RouteComponentProps {}
 
@@ -85,19 +86,24 @@ const updateProgress = () => {
 
 // TO-DO: Dispatch build runs in batches of 500 till all are complete ?
 const ExportPipeline: React.FC<ExportPipelineProps> = (ExportPipelineProps) => {
-  for (var i = 26501; i <= 26827; i++) {
-    code = "";
-    errors = "";
-    flag = 0;
+  // for (var i = 1; i <= 26827; i++) {
+  for (var i = 1; i <= 5000; i++) {
+    if (i === txt[i]) {
+      code = "";
+      errors = "";
+      flag = 0;
 
-    code = txt[i]["code"];
-    errors = build(code, errors);
+      code = txt[i]["code"];
+      errors = build(code, errors);
 
-    // eslint-disable-next-line
-    errors.then((data) => {
-      globalerrors += "////\n";
-      globalerrors += data;
-    });
+      // eslint-disable-next-line
+      errors.then((data) => {
+        globalerrors += "////\n";
+        globalerrors += data;
+      });
+    } else {
+      continue;
+    }
   }
 
   const TextFile = () => {

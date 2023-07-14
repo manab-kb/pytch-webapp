@@ -39,4 +39,6 @@ cypress/fixtures/project-zipfiles/tmp-content/
 # Dot-env file for Google Api values
 src/.env
 
+# Protect assets from public access
 src/assets/globaldata-pytch.json
+src/assets/gpt-eval.json
