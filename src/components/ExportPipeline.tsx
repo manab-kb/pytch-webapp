@@ -1,11 +1,10 @@
 // @ts-nocheck
-
 import { RouteComponentProps } from "@reach/router";
 import React from "react";
 import { assetServer } from "../skulpt-connection/asset-server";
 import { ensureSoundManager } from "../skulpt-connection/sound-manager";
-// import txt from "../assets/globaldata-pytch.json";
-import txt from "../assets/gpt-eval.json";
+import txt1 from "../assets/globaldata-pytch.json";
+import txt2 from "../assets/gpt-eval.json";
 
 interface ExportPipelineProps extends RouteComponentProps {}
 
@@ -86,23 +85,24 @@ const updateProgress = () => {
 
 // TO-DO: Dispatch build runs in batches of 500 till all are complete ?
 const ExportPipeline: React.FC<ExportPipelineProps> = (ExportPipelineProps) => {
-  // for (var i = 1; i <= 26827; i++) {
-  for (var i = 1; i <= 5000; i++) {
-    if (i === txt[i]) {
-      code = "";
-      errors = "";
-      flag = 0;
+  for (var i = 1; i <= 26827; i++) {
+    if (txt2[i] !== undefined) {
+      if (txt1[i]["code"] === txt2[i]["Original"]["Code"]) {
+        code = "";
+        errors = "";
+        flag = 0;
 
-      code = txt[i]["GPT"]["Code"];
-      errors = build(code, errors);
+        code = txt2[i]["GPT"]["Code"];
+        errors = build(code, errors);
 
-      // eslint-disable-next-line
-      errors.then((data) => {
-        globalerrors += "////\n";
-        globalerrors += data;
-      });
-    } else {
-      continue;
+        // eslint-disable-next-line
+        errors.then((data) => {
+          globalerrors += "////\n";
+          globalerrors += data;
+        });
+      } else {
+        continue;
+      }
     }
   }
 
