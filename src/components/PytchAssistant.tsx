@@ -98,7 +98,7 @@ class PytchAssistant extends React.Component {
 
         <br />
 
-        <div class="ml-4">
+        <div style={{marginLeft: "1em"}}>
           <Input
             placeholder={this.state.defaultVal}
             autofocus={true}
