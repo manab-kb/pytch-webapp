@@ -11,6 +11,12 @@ import { failIfNull } from "../utils";
 import { HelpSidebar, HelpSidebarOpenControl } from "./HelpSidebar";
 import { equalILoadSaveStatus } from "../model/project";
 
+var llmCode = "";
+
+export function codeReturner() {
+  return llmCode;
+}
+
 const ReadOnlyOverlay = () => {
   const syncState = useStoreState(
     (state) => state.activeProject.syncState,
@@ -48,6 +54,7 @@ const CodeAceEditor = () => {
           `; loadState ${state.activeProject.syncState.loadState}` +
           `; program kind ${state.activeProject.project.program.kind}`
       );
+    llmCode = state.activeProject.project.program.text;
     return state.activeProject.project.program.text;
   });
   const aceRef: React.RefObject<AceEditor> = React.createRef();

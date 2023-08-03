@@ -8,6 +8,7 @@ import ProjectAssetList from "./ProjectAssetList";
 import EditorWebSocketInfo from "./EditorWebSocketInfo";
 import { LayoutChooser } from "./LayoutChooser";
 import { isEnabled as liveReloadEnabled } from "../model/live-reload";
+import PytchAssistant from "./PytchAssistant";
 
 const StandardOutput = () => {
   const text = useStoreState((state) => state.standardOutputPane.text);
@@ -79,6 +80,9 @@ const InfoPanel = () => {
         </Tab>
         <Tab className="InfoPane" eventKey="errors" title="Errors">
           <Errors />
+        </Tab>
+        <Tab className="InfoPane" eventKey="assistant" title="Assistant">
+          <PytchAssistant />
         </Tab>
         {liveReloadEnabled ? (
           <Tab
