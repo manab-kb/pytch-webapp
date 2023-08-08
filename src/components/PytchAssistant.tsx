@@ -9,6 +9,7 @@ import { Input } from "react-chat-elements";
 import weaviate, { WeaviateClient, ApiKey } from "weaviate-ts-client";
 import fetch from "node-fetch";
 import { Configuration, OpenAIApi } from "openai";
+import {CodeSection} from "react-code-section-lib"
 
 // TO-DO: Route requests through a backend server to prevent exposing the API key
 const configuration = new Configuration({
@@ -98,7 +99,7 @@ class PytchAssistant extends React.Component {
 
         <br />
 
-        <div style={{marginLeft: "1em"}}>
+        <div style={{ marginLeft: "1em" }}>
           <Input
             placeholder={this.state.defaultVal}
             autofocus={true}
@@ -131,13 +132,34 @@ class PytchAssistant extends React.Component {
                       completion: data,
                     });
 
-                    var assistantMsg = {
-                      position: "left",
-                      type: "text",
-                      title: "Pytch Assistant",
-                      text: this.state.completion.data.choices[0].message
-                        .content,
-                    };
+                    if (String(this.state.completion.data.choices[0].message.content).includes("```")) {
+                      var assistantMsg = {
+                        position: "left",
+                        type: "text",
+                        title: "Pytch Assistant",
+                        text: this.state.completion.data.choices[0].message.content.split("```")[0],
+                      };
+
+                      var assistantCodeMsg = {
+                        position: "left",
+                        type: "text",
+                        title: "Pytch Assistant",
+                        text: this.state.completion.data.choices[0].message.content.split("```")[1]
+                     // text: "<CodeSection> ${this.state.completion.data.choices[0].message.content.split(\"```\")[1]} </CodeSection>",
+                      };
+
+                      tempmsglist.push(assistantMsg);
+                      tempmsglist.push(assistantCodeMsg);
+                    } else {
+                      var assistantMsg = {
+                        position: "left",
+                        type: "text",
+                        title: "Pytch Assistant",
+                        text: this.state.completion.data.choices[0].message.content,
+                      };
+
+                      tempmsglist.push(assistantMsg);
+                    }
 
                     var tempQueryList = this.state.queryList;
                     tempQueryList.push({
@@ -148,8 +170,6 @@ class PytchAssistant extends React.Component {
                     this.setState({
                       queryList: tempQueryList,
                     });
-
-                    tempmsglist.push(assistantMsg);
 
                     this.setState({
                       messageList: tempmsglist,
