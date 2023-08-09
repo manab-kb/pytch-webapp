@@ -1,6 +1,5 @@
 // @ts-nocheck
 //Overview: Whenever the user types a message,  append in to the messagelist to be displayed, take the content from the message along with a current stage snapshot of the code from the state management system, feed it into the embedding creator, compare with 5 other embeddings, feed into GPT, get the prompt, store into the messagelist, and display the content, feed the messagelist from the next time to maintain context (provide embeddings only the first time, do not provide from the subsequent times to save up on tokens and maintain limit)
-
 import React from "react";
 import { codeReturner } from "./CodeEditor";
 import "react-chat-elements/dist/main.css";
@@ -15,7 +14,6 @@ import {CodeSection} from "react-code-section-lib"
 const configuration = new Configuration({
   apiKey: "",
 });
-const openai = new OpenAIApi(configuration);
 
 // TO-DO: Remove API Keys from code before pushing to GitLab & route Weaviate calls through different server too
 // const client: WeaviateClient = weaviate.client({
@@ -49,6 +47,7 @@ class PytchAssistant extends React.Component {
             "You are an expert in creative coding for kids in middle school who use the Pytch programming language. Given the current status of the code written by a student, your task is to involve in a conversation with the student to help correct errors in their code in a gradual way without providing the exact complete solution. In order to help the student, you can provide examples that are relevant yet different from the code provided but do not return the completed code at any cost.",
         },
       ],
+      openai: new OpenAIApi(configuration),
     };
 
     this.completionFunc = this.completionFunc.bind(this);
@@ -78,7 +77,7 @@ class PytchAssistant extends React.Component {
       queryList: tempQueryList,
     });
 
-    const completion = await openai.createChatCompletion({
+    const completion = await this.state.openai.createChatCompletion({
       model: "gpt-3.5-turbo",
       messages: this.state.queryList,
     });
@@ -128,24 +127,20 @@ class PytchAssistant extends React.Component {
 
                 this.completionFunc(this.state.inputVal, llmCode).then(
                   (data) => {
-                    this.setState({
-                      completion: data,
-                    });
-
-                    if (String(this.state.completion.data.choices[0].message.content).includes("```")) {
+                    if (String(data.data.choices[0].message.content).includes("```")) {
                       var assistantMsg = {
                         position: "left",
                         type: "text",
                         title: "Pytch Assistant",
-                        text: this.state.completion.data.choices[0].message.content.split("```")[0],
+                        text: data.data.choices[0].message.content.split("```")[0],
                       };
 
                       var assistantCodeMsg = {
                         position: "left",
                         type: "text",
                         title: "Pytch Assistant",
-                        text: this.state.completion.data.choices[0].message.content.split("```")[1]
-                     // text: "<CodeSection> ${this.state.completion.data.choices[0].message.content.split(\"```\")[1]} </CodeSection>",
+                        text: data.data.choices[0].message.content.split("```")[1]
+                     // text: "<CodeSection> ${data.data.choices[0].message.content.split(\"```\")[1]} </CodeSection>",
                       };
 
                       tempmsglist.push(assistantMsg);
@@ -155,7 +150,7 @@ class PytchAssistant extends React.Component {
                         position: "left",
                         type: "text",
                         title: "Pytch Assistant",
-                        text: this.state.completion.data.choices[0].message.content,
+                        text: data.data.choices[0].message.content,
                       };
 
                       tempmsglist.push(assistantMsg);
@@ -165,7 +160,7 @@ class PytchAssistant extends React.Component {
                     tempQueryList.push({
                       role: "assistant",
                       content:
-                        this.state.completion.data.choices[0].message.content,
+                        data.data.choices[0].message.content,
                     });
                     this.setState({
                       queryList: tempQueryList,
@@ -175,9 +170,13 @@ class PytchAssistant extends React.Component {
                       messageList: tempmsglist,
                       inputVal: "",
                     });
+
+                    this.setState({
+                      completion: data,
+                    });
+                    // TO-DO: Clear input element before proceeding.
                   }
                 );
-                // TO-DO: Clear input field before accepting new input
               }
             }}
           />
