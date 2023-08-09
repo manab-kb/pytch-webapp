@@ -17,11 +17,11 @@ const configuration = new Configuration({
 });
 
 // TO-DO: Remove API Keys from code before pushing to GitLab & route Weaviate calls through different server too
-// const client: WeaviateClient = weaviate.client({
-//   scheme: "https",
-//   host: "",
-//   apiKey: new ApiKey("")
-// });
+const client: WeaviateClient = weaviate.client({
+  scheme: "https",
+  host: "",
+  apiKey: new ApiKey("")
+});
 
 class PytchAssistant extends React.Component {
   constructor(props) {
@@ -70,9 +70,16 @@ class PytchAssistant extends React.Component {
     //   .do();
 
     // // TO-DO: Pick all tut_text elements from the contextlist and store them in a newline separated string
-    // var context = "";
+    // var context = "\n\nContext:\n";
 
-    var query = prompt + "\n\nCode:\n" + code;
+    // contextlist.data.Get.PromptAssistance.forEach((item) => {
+    //   context += item["tut_text"];
+    //   context += "\n"
+    // })
+
+    // console.log(context);
+    
+    var query = "\nCode:\n" + code + "\n\n" + prompt;
 
     var tempQueryList = this.state.queryList;
     tempQueryList.push({ role: "user", content: query });
@@ -84,6 +91,8 @@ class PytchAssistant extends React.Component {
       model: "gpt-3.5-turbo",
       messages: this.state.queryList,
     });
+
+    // TO-DO: Create logs of each API Call and store the conversations somewhere
 
     return await completion;
   };
