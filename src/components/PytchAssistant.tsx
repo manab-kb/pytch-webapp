@@ -5,6 +5,7 @@ import { codeReturner } from "./CodeEditor";
 import "react-chat-elements/dist/main.css";
 import { MessageList } from "react-chat-elements";
 import { Input } from "react-chat-elements";
+import { Button } from "react-chat-elements";
 import weaviate, { WeaviateClient, ApiKey } from "weaviate-ts-client";
 import fetch from "node-fetch";
 import { Configuration, OpenAIApi } from "openai";
@@ -52,6 +53,7 @@ class PytchAssistant extends React.Component {
 
     this.completionFunc = this.completionFunc.bind(this);
     this.executeChat = this.executeChat.bind(this);
+    this.clearChat = this.clearChat.bind(this);
   }
 
   completionFunc = async (prompt, code) => {
@@ -153,10 +155,42 @@ class PytchAssistant extends React.Component {
     });
   };
 
+  clearChat = () => {
+    this.setState({
+      messageList: [
+        {
+          position: "left",
+          type: "text",
+          title: "Pytch Assistant",
+          text: "Hi there !",
+        },
+      ],
+      queryList: [
+        {
+          role: "system",
+          content:
+            "You are an expert in creative coding for kids in middle school who use the Pytch programming language. Given the current status of the code written by a student, your task is to involve in a conversation with the student to help correct errors in their code in a gradual way without providing the exact complete solution. In order to help the student, you can provide examples that are relevant yet different from the code provided but do not return the completed code at any cost.",
+        },
+      ],
+    });
+  };
+
   render() {
     return (
       <div>
         <br />
+
+        <div align="right" style={{ marginRight: "1em" }}>
+          <Button
+            text={"Clear Chat"}
+            onClick={() => {
+              alert("Deleting Current Chat History...");
+              this.clearChat();
+            }}
+            title="Clear Chat"
+          />
+        </div>
+
         <MessageList
           className="message-list"
           lockable={true}
@@ -179,7 +213,7 @@ class PytchAssistant extends React.Component {
               if (e2.key === "Enter") {
                 var ele = document.getElementsByClassName("rce-input");
                 ele[0].value = "";
-                
+
                 this.executeChat();
               }
             }}
