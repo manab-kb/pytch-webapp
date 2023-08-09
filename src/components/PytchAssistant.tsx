@@ -8,7 +8,7 @@ import { Input } from "react-chat-elements";
 import weaviate, { WeaviateClient, ApiKey } from "weaviate-ts-client";
 import fetch from "node-fetch";
 import { Configuration, OpenAIApi } from "openai";
-import {CodeSection} from "react-code-section-lib"
+import { CodeSection } from "react-code-section-lib";
 
 // TO-DO: Route requests through a backend server to prevent exposing the API key
 const configuration = new Configuration({
@@ -51,6 +51,7 @@ class PytchAssistant extends React.Component {
     };
 
     this.completionFunc = this.completionFunc.bind(this);
+    this.executeChat = this.executeChat.bind(this);
   }
 
   completionFunc = async (prompt, code) => {
@@ -85,6 +86,73 @@ class PytchAssistant extends React.Component {
     return await completion;
   };
 
+  executeChat = () => {
+    var newMessageObj = {
+      position: "right",
+      type: "text",
+      title: "User",
+      text: this.state.inputVal,
+    };
+
+    var tempmsglist = this.state.messageList;
+    tempmsglist.push(newMessageObj);
+
+    this.setState({
+      messageList: tempmsglist,
+    });
+
+    var llmCode = codeReturner();
+
+    this.completionFunc(this.state.inputVal, llmCode).then((data) => {
+      if (String(data.data.choices[0].message.content).includes("```")) {
+        var assistantMsg = {
+          position: "left",
+          type: "text",
+          title: "Pytch Assistant",
+          text: data.data.choices[0].message.content.split("```")[0],
+        };
+
+        var assistantCodeMsg = {
+          position: "left",
+          type: "text",
+          title: "Pytch Assistant",
+          text: data.data.choices[0].message.content.split("```")[1],
+          // text: "<CodeSection> ${data.data.choices[0].message.content.split(\"```\")[1]} </CodeSection>",
+        };
+
+        tempmsglist.push(assistantMsg);
+        tempmsglist.push(assistantCodeMsg);
+      } else {
+        var assistantMsg = {
+          position: "left",
+          type: "text",
+          title: "Pytch Assistant",
+          text: data.data.choices[0].message.content,
+        };
+
+        tempmsglist.push(assistantMsg);
+      }
+
+      var tempQueryList = this.state.queryList;
+      tempQueryList.push({
+        role: "assistant",
+        content: data.data.choices[0].message.content,
+      });
+      this.setState({
+        queryList: tempQueryList,
+      });
+
+      this.setState({
+        messageList: tempmsglist,
+        inputVal: "",
+      });
+
+      this.setState({
+        completion: data,
+      });
+    });
+  };
+
   render() {
     return (
       <div>
@@ -98,7 +166,7 @@ class PytchAssistant extends React.Component {
 
         <br />
 
-        <div style={{ marginLeft: "1em" }}>
+        <div id="inputDiv" style={{ marginLeft: "1em" }}>
           <Input
             placeholder={this.state.defaultVal}
             autofocus={true}
@@ -109,74 +177,10 @@ class PytchAssistant extends React.Component {
             }}
             onKeyPress={(e2) => {
               if (e2.key === "Enter") {
-                var newMessageObj = {
-                  position: "right",
-                  type: "text",
-                  title: "User",
-                  text: this.state.inputVal,
-                };
-
-                var tempmsglist = this.state.messageList;
-                tempmsglist.push(newMessageObj);
-
-                this.setState({
-                  messageList: tempmsglist,
-                });
-
-                var llmCode = codeReturner();
-
-                this.completionFunc(this.state.inputVal, llmCode).then(
-                  (data) => {
-                    if (String(data.data.choices[0].message.content).includes("```")) {
-                      var assistantMsg = {
-                        position: "left",
-                        type: "text",
-                        title: "Pytch Assistant",
-                        text: data.data.choices[0].message.content.split("```")[0],
-                      };
-
-                      var assistantCodeMsg = {
-                        position: "left",
-                        type: "text",
-                        title: "Pytch Assistant",
-                        text: data.data.choices[0].message.content.split("```")[1]
-                     // text: "<CodeSection> ${data.data.choices[0].message.content.split(\"```\")[1]} </CodeSection>",
-                      };
-
-                      tempmsglist.push(assistantMsg);
-                      tempmsglist.push(assistantCodeMsg);
-                    } else {
-                      var assistantMsg = {
-                        position: "left",
-                        type: "text",
-                        title: "Pytch Assistant",
-                        text: data.data.choices[0].message.content,
-                      };
-
-                      tempmsglist.push(assistantMsg);
-                    }
-
-                    var tempQueryList = this.state.queryList;
-                    tempQueryList.push({
-                      role: "assistant",
-                      content:
-                        data.data.choices[0].message.content,
-                    });
-                    this.setState({
-                      queryList: tempQueryList,
-                    });
-
-                    this.setState({
-                      messageList: tempmsglist,
-                      inputVal: "",
-                    });
-
-                    this.setState({
-                      completion: data,
-                    });
-                    // TO-DO: Clear input element before proceeding.
-                  }
-                );
+                var ele = document.getElementsByClassName("rce-input");
+                ele[0].value = "";
+                
+                this.executeChat();
               }
             }}
           />
