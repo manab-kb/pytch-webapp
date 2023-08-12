@@ -84,14 +84,11 @@ class PytchAssistant extends React.Component {
     const url =
       "https://fetch-openai-gpt-responses.azurewebsites.net/api/HttpTrigger1?code=kydZAUoXw3D2Q3PPff68kSA__vKKgiL8DehtvRnRhlYdAzFub5btKw==";
 
-    axios
-      .post(url, {
-        prompt: this.state.queryList,
-      })
-      .then((response) => {
-        console.log(response.data.completion); //TO-FIX: This response is being returned after the result awaited at the caller function
-        return response.data.completion;
-      });
+    const response = await axios.post(url, {
+      prompt: this.state.queryList,
+    });
+
+    return await response;
 
     // TO-DO: Create logs of each API Call and store the conversations somewhere
   };
@@ -114,21 +111,21 @@ class PytchAssistant extends React.Component {
     var llmCode = codeReturner();
 
     this.completionFunc(this.state.inputVal, llmCode).then((data) => {
-      console.log(data);
+      console.log(data.data.completion);
 
-      if (String(data).includes("```")) {
+      if (String(data.data.completion).includes("```")) {
         var assistantMsg = {
           position: "left",
           type: "text",
           title: "Pytch Assistant",
-          text: data.split("```")[0],
+          text: data.data.completion.split("```")[0],
         };
 
         var assistantCodeMsg = {
           position: "left",
           type: "text",
           title: "Pytch Assistant",
-          text: data.split("```")[1],
+          text: data.data.completion.split("```")[1],
           // text: "<CodeSection> ${data.data.choices[0].message.content.split(\"```\")[1]} </CodeSection>",
         };
 
@@ -139,7 +136,7 @@ class PytchAssistant extends React.Component {
           position: "left",
           type: "text",
           title: "Pytch Assistant",
-          text: data,
+          text: data.data.completion,
         };
 
         tempmsglist.push(assistantMsg);
@@ -148,7 +145,7 @@ class PytchAssistant extends React.Component {
       var tempQueryList = this.state.queryList;
       tempQueryList.push({
         role: "assistant",
-        content: data,
+        content: data.data.completion,
       });
       this.setState({
         queryList: tempQueryList,
@@ -160,7 +157,7 @@ class PytchAssistant extends React.Component {
       });
 
       this.setState({
-        completion: data,
+        completion: data.data.completion,
       });
     });
   };
