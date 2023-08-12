@@ -1,6 +1,7 @@
 // @ts-nocheck
 //Overview: Whenever the user types a message,  append in to the messagelist to be displayed, take the content from the message along with a current stage snapshot of the code from the state management system, feed it into the embedding creator, compare with 5 other embeddings, feed into GPT, get the prompt, store into the messagelist, and display the content, feed the messagelist from the next time to maintain context (provide embeddings only the first time, do not provide from the subsequent times to save up on tokens and maintain limit)
 import React from "react";
+import axios from "axios";
 import { codeReturner } from "./CodeEditor";
 import "react-chat-elements/dist/main.css";
 import { MessageList } from "react-chat-elements";
@@ -11,17 +12,12 @@ import fetch from "node-fetch";
 import { Configuration, OpenAIApi } from "openai";
 import { CodeSection } from "react-code-section-lib";
 
-// TO-DO: Route requests through a backend server to prevent exposing the API key
-const configuration = new Configuration({
-  apiKey: "",
-});
-
 // TO-DO: Remove API Keys from code before pushing to GitLab & route Weaviate calls through different server too
-const client: WeaviateClient = weaviate.client({
-  scheme: "https",
-  host: "",
-  apiKey: new ApiKey("")
-});
+// const client: WeaviateClient = weaviate.client({
+//   scheme: "https",
+//   host: "",
+//   apiKey: new ApiKey("")
+// });
 
 class PytchAssistant extends React.Component {
   constructor(props) {
@@ -48,7 +44,6 @@ class PytchAssistant extends React.Component {
             "You are an expert in creative coding for kids in middle school who use the Pytch programming language. Given the current status of the code written by a student, your task is to involve in a conversation with the student to help correct errors in their code in a gradual way without providing the exact complete solution. In order to help the student, you can provide examples that are relevant yet different from the code provided but do not return the completed code at any cost.",
         },
       ],
-      openai: new OpenAIApi(configuration),
     };
 
     this.completionFunc = this.completionFunc.bind(this);
@@ -76,9 +71,8 @@ class PytchAssistant extends React.Component {
     //   context += item["tut_text"];
     //   context += "\n"
     // })
-
     // console.log(context);
-    
+
     var query = "\nCode:\n" + code + "\n\n" + prompt;
 
     var tempQueryList = this.state.queryList;
@@ -87,14 +81,19 @@ class PytchAssistant extends React.Component {
       queryList: tempQueryList,
     });
 
-    const completion = await this.state.openai.createChatCompletion({
-      model: "gpt-3.5-turbo",
-      messages: this.state.queryList,
-    });
+    const url =
+      "https://fetch-openai-gpt-responses.azurewebsites.net/api/HttpTrigger1?code=kydZAUoXw3D2Q3PPff68kSA__vKKgiL8DehtvRnRhlYdAzFub5btKw==";
+
+    axios
+      .post(url, {
+        prompt: this.state.queryList,
+      })
+      .then((response) => {
+        console.log(response.data.completion); //TO-FIX: This response is being returned after the result awaited at the caller function
+        return response.data.completion;
+      });
 
     // TO-DO: Create logs of each API Call and store the conversations somewhere
-
-    return await completion;
   };
 
   executeChat = () => {
@@ -115,19 +114,21 @@ class PytchAssistant extends React.Component {
     var llmCode = codeReturner();
 
     this.completionFunc(this.state.inputVal, llmCode).then((data) => {
-      if (String(data.data.choices[0].message.content).includes("```")) {
+      console.log(data);
+
+      if (String(data).includes("```")) {
         var assistantMsg = {
           position: "left",
           type: "text",
           title: "Pytch Assistant",
-          text: data.data.choices[0].message.content.split("```")[0],
+          text: data.split("```")[0],
         };
 
         var assistantCodeMsg = {
           position: "left",
           type: "text",
           title: "Pytch Assistant",
-          text: data.data.choices[0].message.content.split("```")[1],
+          text: data.split("```")[1],
           // text: "<CodeSection> ${data.data.choices[0].message.content.split(\"```\")[1]} </CodeSection>",
         };
 
@@ -138,7 +139,7 @@ class PytchAssistant extends React.Component {
           position: "left",
           type: "text",
           title: "Pytch Assistant",
-          text: data.data.choices[0].message.content,
+          text: data,
         };
 
         tempmsglist.push(assistantMsg);
@@ -147,7 +148,7 @@ class PytchAssistant extends React.Component {
       var tempQueryList = this.state.queryList;
       tempQueryList.push({
         role: "assistant",
-        content: data.data.choices[0].message.content,
+        content: data,
       });
       this.setState({
         queryList: tempQueryList,
