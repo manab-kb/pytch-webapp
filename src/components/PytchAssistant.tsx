@@ -7,17 +7,8 @@ import "react-chat-elements/dist/main.css";
 import { MessageList } from "react-chat-elements";
 import { Input } from "react-chat-elements";
 import { Button } from "react-chat-elements";
-import weaviate, { WeaviateClient, ApiKey } from "weaviate-ts-client";
 import fetch from "node-fetch";
-import { Configuration, OpenAIApi } from "openai";
 import { CodeSection } from "react-code-section-lib";
-
-// TO-DO: Remove API Keys from code before pushing to GitLab & route Weaviate calls through different server too
-// const client: WeaviateClient = weaviate.client({
-//   scheme: "https",
-//   host: "",
-//   apiKey: new ApiKey("")
-// });
 
 class PytchAssistant extends React.Component {
   constructor(props) {
@@ -52,34 +43,37 @@ class PytchAssistant extends React.Component {
   }
 
   completionFunc = async (prompt, code) => {
-    // var embedding = await openai.createEmbedding({
-    //   model: "text-embedding-ada-002",
-    //   input: code,
-    // });
+    if (this.state.queryList.length == 1) {
+      const uri =
+        "https://fetch-weaviate-db-responses.azurewebsites.net/api/HttpTrigger1?code=FRj3UVtc_33RKiKtyOdoo645mYvg8PXyGqEix8q2R76_AzFuguHQsA==";
 
-    // var contextlist = await client.graphql
-    //   .get()
-    //   .withClassName("PromptAssistance")
-    //   .withNearVector(embedding.data)
-    //   .withLimit(5)
-    //   .do();
+      const embedresponse = await axios
+        .post(uri, {
+          code: code,
+        })
+        .then(async (result) => {
+          var query =
+            result.data["context-content"] +
+            "\nCode:\n" +
+            code +
+            "\n\n" +
+            prompt;
 
-    // // TO-DO: Pick all tut_text elements from the contextlist and store them in a newline separated string
-    // var context = "\n\nContext:\n";
+          var tempQueryList = this.state.queryList;
+          tempQueryList.push({ role: "user", content: query });
+          this.setState({
+            queryList: tempQueryList,
+          });
+        });
+    } else {
+      var query = "\nCode:\n" + code + "\n\n" + prompt;
 
-    // contextlist.data.Get.PromptAssistance.forEach((item) => {
-    //   context += item["tut_text"];
-    //   context += "\n"
-    // })
-    // console.log(context);
-
-    var query = "\nCode:\n" + code + "\n\n" + prompt;
-
-    var tempQueryList = this.state.queryList;
-    tempQueryList.push({ role: "user", content: query });
-    this.setState({
-      queryList: tempQueryList,
-    });
+      var tempQueryList = this.state.queryList;
+      tempQueryList.push({ role: "user", content: query });
+      this.setState({
+        queryList: tempQueryList,
+      });
+    }
 
     const url =
       "https://fetch-openai-gpt-responses.azurewebsites.net/api/HttpTrigger1?code=kydZAUoXw3D2Q3PPff68kSA__vKKgiL8DehtvRnRhlYdAzFub5btKw==";
@@ -87,10 +81,9 @@ class PytchAssistant extends React.Component {
     const response = await axios.post(url, {
       prompt: this.state.queryList,
     });
-
-    return await response;
-
+    
     // TO-DO: Create logs of each API Call and store the conversations somewhere
+    return await response;
   };
 
   executeChat = () => {
@@ -111,8 +104,6 @@ class PytchAssistant extends React.Component {
     var llmCode = codeReturner();
 
     this.completionFunc(this.state.inputVal, llmCode).then((data) => {
-      console.log(data.data.completion);
-
       if (String(data.data.completion).includes("```")) {
         var assistantMsg = {
           position: "left",
