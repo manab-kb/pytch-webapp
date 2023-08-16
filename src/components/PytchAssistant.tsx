@@ -9,6 +9,7 @@ import { Input } from "react-chat-elements";
 import { Button } from "react-chat-elements";
 import fetch from "node-fetch";
 import { CodeSection } from "react-code-section-lib";
+import { isError } from "./InfoPanel";
 
 class PytchAssistant extends React.Component {
   constructor(props) {
@@ -40,13 +41,13 @@ class PytchAssistant extends React.Component {
     this.completionFunc = this.completionFunc.bind(this);
     this.executeChat = this.executeChat.bind(this);
     this.clearChat = this.clearChat.bind(this);
+    this.prepChat = this.prepChat.bind(this);
   }
 
   completionFunc = async (prompt, code) => {
     if (this.state.queryList.length == 1) {
-      const uri =
-        "https://fetch-weaviate-db-responses.azurewebsites.net/api/HttpTrigger1?code=FRj3UVtc_33RKiKtyOdoo645mYvg8PXyGqEix8q2R76_AzFuguHQsA==";
-
+      const uri = "https://fetch-weaviate-db-responses.azurewebsites.net/api/HttpTrigger1?code=FRj3UVtc_33RKiKtyOdoo645mYvg8PXyGqEix8q2R76_AzFuguHQsA==";
+      
       const embedresponse = await axios
         .post(uri, {
           code: code,
@@ -75,15 +76,89 @@ class PytchAssistant extends React.Component {
       });
     }
 
-    const url =
-      "https://fetch-openai-gpt-responses.azurewebsites.net/api/HttpTrigger1?code=kydZAUoXw3D2Q3PPff68kSA__vKKgiL8DehtvRnRhlYdAzFub5btKw==";
-
+    const url = "https://fetch-openai-gpt-responses.azurewebsites.net/api/HttpTrigger1?code=kydZAUoXw3D2Q3PPff68kSA__vKKgiL8DehtvRnRhlYdAzFub5btKw=="
+    
     const response = await axios.post(url, {
       prompt: this.state.queryList,
     });
-    
-    // TO-DO: Create logs of each API Call and store the conversations somewhere
+
     return await response;
+  };
+
+  prepChat = () => {
+    var newMessageObj = {};
+
+    if (this.state.messageList.length == 1) {
+      var newMessageObj = {};
+      var res = isError();
+
+      if (res === true) {
+        newMessageObj = {
+          position: "right",
+          type: "text",
+          title: "User",
+          text: "Can you help find errors in my code and guide me through the process of resolving them while learning more about them ?",
+        };
+
+        var tempmsglist = this.state.messageList;
+        tempmsglist.push(newMessageObj);
+
+        this.setState({
+          messageList: tempmsglist,
+        });
+
+        var llmCode = codeReturner();
+
+        this.completionFunc(this.state.inputVal, llmCode).then((data) => {
+          if (String(data.data.completion).includes("```")) {
+            var assistantMsg = {
+              position: "left",
+              type: "text",
+              title: "Pytch Assistant",
+              text: data.data.completion.split("```")[0],
+            };
+
+            var assistantCodeMsg = {
+              position: "left",
+              type: "text",
+              title: "Pytch Assistant",
+              text: data.data.completion.split("```")[1],
+              // text: "<CodeSection> ${data.data.choices[0].message.content.split(\"```\")[1]} </CodeSection>",
+            };
+
+            tempmsglist.push(assistantMsg);
+            tempmsglist.push(assistantCodeMsg);
+          } else {
+            var assistantMsg = {
+              position: "left",
+              type: "text",
+              title: "Pytch Assistant",
+              text: data.data.completion,
+            };
+
+            tempmsglist.push(assistantMsg);
+          }
+
+          var tempQueryList = this.state.queryList;
+          tempQueryList.push({
+            role: "assistant",
+            content: data.data.completion,
+          });
+          this.setState({
+            queryList: tempQueryList,
+          });
+
+          this.setState({
+            messageList: tempmsglist,
+            inputVal: "",
+          });
+
+          this.setState({
+            completion: data.data.completion,
+          });
+        });
+      }
+    } else {}
   };
 
   executeChat = () => {
@@ -202,6 +277,7 @@ class PytchAssistant extends React.Component {
           <Input
             placeholder={this.state.defaultVal}
             autofocus={true}
+            onFocus={this.prepChat}
             onChange={(e1) => {
               this.setState({
                 inputVal: e1.target.value,

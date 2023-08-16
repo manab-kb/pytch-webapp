@@ -8,7 +8,14 @@ import ProjectAssetList from "./ProjectAssetList";
 import EditorWebSocketInfo from "./EditorWebSocketInfo";
 import { LayoutChooser } from "./LayoutChooser";
 import { isEnabled as liveReloadEnabled } from "../model/live-reload";
+import { Button } from "react-chat-elements";
 import PytchAssistant from "./PytchAssistant";
+
+var isitAnError = false;
+
+export function isError() {
+  return isitAnError;
+}
 
 const StandardOutput = () => {
   const text = useStoreState((state) => state.standardOutputPane.text);
@@ -28,19 +35,6 @@ const StandardOutput = () => {
   );
 };
 
-const Errors = () => {
-  const errorList = useStoreState((state) => state.errorReportList.errors);
-  const inner =
-    errorList.length === 0 ? (
-      <p className="info-pane-placeholder">
-        Any errors your project encounters will appear here.
-      </p>
-    ) : (
-      <ErrorReportList />
-    );
-  return <div className="ErrorsPane">{inner}</div>;
-};
-
 const InfoPanel = () => {
   const isSyncingFromBackEnd = useStoreState(
     (state) => state.activeProject.syncState.loadState === "pending"
@@ -57,6 +51,35 @@ const InfoPanel = () => {
   if (isSyncingFromBackEnd) {
     return null;
   }
+
+  const Errors = () => {
+    isitAnError = false;
+    const errorList = useStoreState((state) => state.errorReportList.errors);
+    if (errorList.length !== 0) {
+      isitAnError = true;
+    }
+    const inner =
+      errorList.length === 0 ? (
+        <p className="info-pane-placeholder">
+          Any errors your project encounters will appear here.
+        </p>
+      ) : (
+        <div>
+          <ErrorReportList />
+          <div className="m-5">
+            <p>Do you want to seek for help from the Pytch Assistant ? </p>
+            <Button
+              text={"Ask the Pytch Assistant"}
+              onClick={() => {
+                setActiveKey("assistant");
+              }}
+              title="Ask the Pytch Assistant"
+            />
+          </div>
+        </div>
+      );
+    return <div className="ErrorsPane">{inner}</div>;
+  };
 
   return (
     <div className="InfoPanel-container">
